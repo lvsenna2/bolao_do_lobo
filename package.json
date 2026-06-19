@@ -1,7 +1,8 @@
 {
+  "name": "bolao-do-lobo-google-login",
+  "version": "9.0.0",
+  "private": true,
   "scripts": {
-    "deploy": "firebase deploy",
-    "serve": "firebase emulators:start"
-  },
-  "dependencies": {}
+    "deploy": "firebase deploy"
+  }
 }
