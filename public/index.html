@@ -13,7 +13,7 @@
     <h1>BOLÃO DO LOBO</h1>
     <span>⚽</span>
   </div>
-  <p>Copa do Mundo 2026 • Palpites • Ranking • Premiação</p>
+  <p>Copa do Mundo 2026 • Sistema novo do zero</p>
 
   <nav id="nav" class="hidden">
     <button onclick="showPage('palpites')">Palpites</button>
@@ -26,19 +26,44 @@
 
 <main>
   <section id="loginPage" class="login-card">
-    <h2>Entrar ou criar conta</h2>
-    <p>Use sua conta Google. Se for seu primeiro acesso, sua conta no Bolão será criada automaticamente.</p>
-    <div class="grid">
-      <button id="loginGoogleBtn" class="google-btn" type="button">🔐 Entrar com Google</button>
-      <button id="createGoogleBtn" class="google-btn" type="button">🆕 Criar conta com Google</button>
+    <h2>Entrar no Bolão</h2>
+
+    <div class="tabs">
+      <button onclick="showLoginTab('entrar')">Login do usuário</button>
+      <button onclick="showLoginTab('criar')">Criar conta</button>
+      <button onclick="showLoginTab('admin')">Login ADM</button>
     </div>
+
+    <div id="tabEntrar">
+      <h3>Login do usuário</h3>
+      <input id="loginEmail" type="email" placeholder="E-mail">
+      <input id="loginPassword" type="password" placeholder="Senha">
+      <button onclick="loginUser()">Entrar</button>
+    </div>
+
+    <div id="tabCriar" class="hidden">
+      <h3>Criar conta no bolão</h3>
+      <input id="registerName" placeholder="Nome/apelido">
+      <input id="registerEmail" type="email" placeholder="E-mail">
+      <input id="registerPassword" type="password" placeholder="Senha com no mínimo 6 caracteres">
+      <button onclick="createAccount()">Criar conta</button>
+    </div>
+
+    <div id="tabAdmin" class="hidden">
+      <h3>Login fixo do ADM</h3>
+      <p class="small">E-mail: <strong>lvaz@id.uff.br</strong></p>
+      <input id="adminPassword" type="password" placeholder="Senha do ADM">
+      <button onclick="loginAdmin()">Entrar como ADM</button>
+    </div>
+
     <div id="loginMsg" class="msg"></div>
 
     <div class="rules">
-      <h2>Premiação</h2>
-      <p>🥇 1º lugar: <strong>R$ 150</strong></p>
-      <p>🥈 2º lugar: <strong>R$ 40</strong></p>
-      <p>🥉 3º lugar: <strong>R$ 20</strong></p>
+      <h2>Regras</h2>
+      <p>✅ Vencedor ou empate correto: <strong>3 pontos</strong></p>
+      <p>✅ Dupla hipótese 1X ou 2X: <strong>1 ponto</strong></p>
+      <p>✅ Dobrado normal: <strong>6 pontos</strong></p>
+      <p>✅ Dobrado com dupla hipótese: <strong>3 pontos</strong></p>
     </div>
   </section>
 
@@ -50,7 +75,7 @@
       <select id="dateSelect" onchange="loadGamesForSelectedDate()"></select>
       <div class="info-card">
         <strong>Regra:</strong><br>
-        Apenas os jogos do dia ficam liberados. Escolha todos os palpites abertos e marque 1 dobrado.
+        Somente jogos do dia ficam liberados. Jogos futuros e passados ficam bloqueados.
       </div>
     </div>
 
@@ -82,8 +107,8 @@
   </section>
 
   <section id="rankingPage" class="hidden">
-    <h2>Ranking da alcateia</h2>
-    <button onclick="loadRanking()">Atualizar Ranking</button>
+    <h2>Ranking</h2>
+    <button onclick="loadRanking()">Atualizar</button>
     <div class="table-wrap">
       <table>
         <thead>
@@ -118,10 +143,15 @@
         <div class="stat"><strong id="statPredictions">0</strong><span>Palpites</span></div>
         <div class="stat"><strong id="statTodayGames">0</strong><span>Jogos hoje</span></div>
       </div>
+
+      <h2>Iniciar sistema</h2>
+      <button onclick="seedCalendar()">Cadastrar calendário da Copa</button>
+      <button class="danger" onclick="clearV12Database()">Limpar banco V12</button>
+      <div id="adminMsg" class="msg"></div>
     </div>
 
     <div id="adminJogos" class="hidden">
-      <h2>Cadastrar jogo</h2>
+      <h2>Cadastrar jogo manual</h2>
       <div class="grid">
         <input id="gameDate" type="date" />
         <input id="gameTime" type="time" />
@@ -142,6 +172,7 @@
               <th>Grupo</th>
               <th>Jogo</th>
               <th>Resultado</th>
+              <th>Ação</th>
             </tr>
           </thead>
           <tbody id="adminGamesTable"></tbody>

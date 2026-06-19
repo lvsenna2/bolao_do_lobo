@@ -1,10 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import {
   getAuth,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   onAuthStateChanged,
   signOut
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
@@ -18,6 +16,7 @@ import {
   setDoc,
   updateDoc,
   addDoc,
+  deleteDoc,
   query,
   where,
   orderBy,
@@ -34,11 +33,11 @@ const firebaseConfig = {
   appId: "1:25366687259:web:db57a21d2194a5986c12be"
 };
 
-const ADM_EMAILS = ["lvaz@id.uff.br"];
+const ADMIN_EMAIL = "lvaz@id.uff.br";
+const ADMIN_PASSWORD = "LoboAdmin2026";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
 const db = getFirestore(app);
 
 let currentUser = null;
@@ -47,7 +46,61 @@ let currentGames = [];
 let myPredictions = [];
 let unsubscribeRanking = null;
 
-window.loginGoogle = loginGoogle;
+const calendarGames = [
+  ["1","2026-06-11","16:00","A","México","África do Sul"],
+  ["2","2026-06-11","23:00","A","Coreia do Sul","Tchéquia"],
+  ["3","2026-06-12","16:00","B","Canadá","Bósnia e Herzegovina"],
+  ["4","2026-06-12","22:00","D","Estados Unidos","Paraguai"],
+  ["5","2026-06-13","16:00","B","Catar","Suíça"],
+  ["6","2026-06-13","19:00","C","Brasil","Marrocos"],
+  ["7","2026-06-13","22:00","C","Haiti","Escócia"],
+  ["8","2026-06-14","01:00","D","Austrália","Turquia"],
+  ["9","2026-06-14","14:00","E","Alemanha","Curaçao"],
+  ["10","2026-06-14","17:00","F","Holanda","Japão"],
+  ["11","2026-06-14","20:00","E","Costa do Marfim","Equador"],
+  ["12","2026-06-14","23:00","F","Suécia","Tunísia"],
+  ["13","2026-06-15","13:00","H","Espanha","Cabo Verde"],
+  ["14","2026-06-15","16:00","G","Bélgica","Egito"],
+  ["15","2026-06-15","19:00","H","Arábia Saudita","Uruguai"],
+  ["16","2026-06-15","22:00","G","Irã","Nova Zelândia"],
+  ["17","2026-06-16","16:00","I","França","Senegal"],
+  ["18","2026-06-16","19:00","I","Iraque","Noruega"],
+  ["19","2026-06-16","22:00","J","Argentina","Argélia"],
+  ["20","2026-06-17","01:00","J","Áustria","Jordânia"],
+  ["21","2026-06-17","14:00","K","Portugal","RD Congo"],
+  ["22","2026-06-17","17:00","L","Inglaterra","Croácia"],
+  ["23","2026-06-17","20:00","L","Gana","Panamá"],
+  ["24","2026-06-17","23:00","K","Uzbequistão","Colômbia"],
+  ["25","2026-06-18","13:00","A","Tchéquia","África do Sul"],
+  ["26","2026-06-18","16:00","B","Suíça","Bósnia e Herzegovina"],
+  ["27","2026-06-18","19:00","B","Canadá","Catar"],
+  ["28","2026-06-18","22:00","A","México","Coreia do Sul"],
+  ["29","2026-06-19","16:00","D","Estados Unidos","Austrália"],
+  ["30","2026-06-19","19:00","C","Escócia","Marrocos"],
+  ["31","2026-06-19","21:30","C","Brasil","Haiti"],
+  ["32","2026-06-20","00:00","D","Turquia","Paraguai"],
+  ["33","2026-06-20","14:00","F","Holanda","Suécia"],
+  ["34","2026-06-20","17:00","E","Alemanha","Costa do Marfim"],
+  ["35","2026-06-20","21:00","E","Equador","Curaçao"],
+  ["36","2026-06-21","01:00","F","Tunísia","Japão"],
+  ["37","2026-06-21","13:00","H","Espanha","Arábia Saudita"],
+  ["38","2026-06-21","16:00","G","Bélgica","Irã"],
+  ["39","2026-06-21","19:00","H","Uruguai","Cabo Verde"],
+  ["40","2026-06-21","22:00","G","Nova Zelândia","Egito"],
+  ["41","2026-06-22","14:00","J","Argentina","Áustria"],
+  ["42","2026-06-22","18:00","I","França","Iraque"],
+  ["43","2026-06-22","21:00","I","Noruega","Senegal"],
+  ["44","2026-06-23","00:00","J","Jordânia","Argélia"],
+  ["45","2026-06-23","14:00","K","Portugal","Uzbequistão"],
+  ["46","2026-06-23","17:00","L","Inglaterra","Gana"],
+  ["47","2026-06-23","20:00","L","Panamá","Croácia"],
+  ["48","2026-06-23","23:00","K","Colômbia","RD Congo"]
+];
+
+window.showLoginTab = showLoginTab;
+window.loginUser = loginUser;
+window.createAccount = createAccount;
+window.loginAdmin = loginAdmin;
 window.logout = logout;
 window.showPage = showPage;
 window.showAdminTab = showAdminTab;
@@ -58,7 +111,20 @@ window.loadRanking = loadRanking;
 window.createGame = createGame;
 window.loadAdminResultCards = loadAdminResultCards;
 window.saveResult = saveResult;
+window.seedCalendar = seedCalendar;
+window.clearV12Database = clearV12Database;
+window.deleteGame = deleteGame;
 window.exportPredictionsCSV = exportPredictionsCSV;
+
+function showLoginTab(tab) {
+  document.getElementById("tabEntrar").classList.add("hidden");
+  document.getElementById("tabCriar").classList.add("hidden");
+  document.getElementById("tabAdmin").classList.add("hidden");
+
+  if (tab === "entrar") document.getElementById("tabEntrar").classList.remove("hidden");
+  if (tab === "criar") document.getElementById("tabCriar").classList.remove("hidden");
+  if (tab === "admin") document.getElementById("tabAdmin").classList.remove("hidden");
+}
 
 function getTodayBR() {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -98,10 +164,6 @@ function prize(index) {
   return "";
 }
 
-function isAdminEmail(email) {
-  return ADM_EMAILS.includes(String(email).toLowerCase());
-}
-
 function isDateReleased(date) {
   return date === getTodayBR();
 }
@@ -130,28 +192,83 @@ function calculatePoints(prediction, result, game, doubled) {
   return points;
 }
 
-async function loginGoogle() {
+async function loginUser() {
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
   const msg = document.getElementById("loginMsg");
-  msg.textContent = "Abrindo login do Google...";
 
   try {
-    provider.setCustomParameters({ prompt: "select_account" });
-    await signInWithPopup(auth, provider);
+    await signInWithEmailAndPassword(auth, email, password);
     msg.textContent = "Login realizado.";
   } catch (error) {
-    console.error("Erro no login Google:", error);
+    console.error(error);
+    msg.textContent = "Login inválido. Verifique e-mail e senha.";
+  }
+}
 
-    if (
-      error.code === "auth/popup-blocked" ||
-      error.code === "auth/popup-closed-by-user" ||
-      error.code === "auth/cancelled-popup-request"
-    ) {
-      msg.textContent = "Abrindo login em outra tela...";
-      await signInWithRedirect(auth, provider);
-      return;
+async function createAccount() {
+  const name = document.getElementById("registerName").value.trim();
+  const email = document.getElementById("registerEmail").value.trim();
+  const password = document.getElementById("registerPassword").value;
+  const msg = document.getElementById("loginMsg");
+
+  if (!name || !email || password.length < 6) {
+    msg.textContent = "Preencha nome, e-mail e senha com no mínimo 6 caracteres.";
+    return;
+  }
+
+  try {
+    const credential = await createUserWithEmailAndPassword(auth, email, password);
+
+    await setDoc(doc(db, "v12_users", credential.user.uid), {
+      uid: credential.user.uid,
+      name,
+      email,
+      role: "user",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+
+    msg.textContent = "Conta criada com sucesso.";
+  } catch (error) {
+    console.error(error);
+    msg.textContent = "Erro ao criar conta: " + (error.code || error.message);
+  }
+}
+
+async function loginAdmin() {
+  const password = document.getElementById("adminPassword").value;
+  const msg = document.getElementById("loginMsg");
+
+  if (password !== ADMIN_PASSWORD) {
+    msg.textContent = "Senha do ADM incorreta.";
+    return;
+  }
+
+  try {
+    await signInWithEmailAndPassword(auth, ADMIN_EMAIL, ADMIN_PASSWORD);
+    msg.textContent = "ADM conectado.";
+  } catch (error) {
+    if (error.code === "auth/user-not-found" || error.code === "auth/invalid-credential") {
+      try {
+        const credential = await createUserWithEmailAndPassword(auth, ADMIN_EMAIL, ADMIN_PASSWORD);
+        await setDoc(doc(db, "v12_users", credential.user.uid), {
+          uid: credential.user.uid,
+          name: "Administrador",
+          email: ADMIN_EMAIL,
+          role: "admin",
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        msg.textContent = "ADM criado e conectado.";
+      } catch (createError) {
+        console.error(createError);
+        msg.textContent = "Não foi possível criar o ADM. Verifique se Email/Senha está ativado no Firebase.";
+      }
+    } else {
+      console.error(error);
+      msg.textContent = "Erro no login ADM: " + (error.code || error.message);
     }
-
-    msg.textContent = "Erro no login Google: " + (error.code || error.message);
   }
 }
 
@@ -160,32 +277,26 @@ async function logout() {
   location.reload();
 }
 
-async function ensureUserProfile(user) {
-  const ref = doc(db, "users", user.uid);
+async function ensureProfile(user) {
+  const ref = doc(db, "v12_users", user.uid);
   const snap = await getDoc(ref);
-  const role = isAdminEmail(user.email) ? "admin" : "user";
 
-  const data = {
+  if (snap.exists()) return snap.data();
+
+  const role = user.email === ADMIN_EMAIL ? "admin" : "user";
+  const name = role === "admin" ? "Administrador" : user.email.split("@")[0];
+
+  await setDoc(ref, {
     uid: user.uid,
-    name: user.displayName || user.email,
+    name,
     email: user.email,
-    photoURL: user.photoURL || "",
     role,
+    createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
-  };
+  });
 
-  if (!snap.exists()) {
-    await setDoc(ref, {
-      ...data,
-      points: 0,
-      createdAt: serverTimestamp()
-    });
-  } else {
-    await updateDoc(ref, data);
-  }
-
-  const updated = await getDoc(ref);
-  return updated.data();
+  const newSnap = await getDoc(ref);
+  return newSnap.data();
 }
 
 function showPage(page) {
@@ -228,7 +339,7 @@ function showAdminTab(tab) {
 }
 
 async function getAllGames() {
-  const snap = await getDocs(query(collection(db, "games"), orderBy("kickoff")));
+  const snap = await getDocs(query(collection(db, "v12_games"), orderBy("kickoff")));
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
@@ -253,7 +364,7 @@ async function loadDates(selectId) {
 }
 
 async function loadMyPredictionsRaw() {
-  const snap = await getDocs(query(collection(db, "predictions"), where("userId", "==", currentUser.uid)));
+  const snap = await getDocs(query(collection(db, "v12_predictions"), where("userId", "==", currentUser.uid)));
   myPredictions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
@@ -269,7 +380,7 @@ async function loadGamesForSelectedDate() {
     return;
   }
 
-  const snap = await getDocs(query(collection(db, "games"), where("date", "==", date), orderBy("kickoff")));
+  const snap = await getDocs(query(collection(db, "v12_games"), where("date", "==", date), orderBy("kickoff")));
   currentGames = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
   if (date !== getTodayBR()) {
@@ -353,7 +464,7 @@ async function savePredictions() {
 
     const predictionId = `${currentUser.uid}_${game.id}`;
 
-    await setDoc(doc(db, "predictions", predictionId), {
+    await setDoc(doc(db, "v12_predictions", predictionId), {
       userId: currentUser.uid,
       userName: currentProfile.name,
       userEmail: currentProfile.email,
@@ -361,8 +472,8 @@ async function savePredictions() {
       date,
       prediction,
       doubled: String(game.id) === String(doubled.value),
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
+      createdAt: serverTimestamp()
     }, { merge: true });
   }
 
@@ -374,7 +485,7 @@ async function savePredictions() {
 
 async function loadMyPredictions() {
   const games = await getAllGames();
-  const snap = await getDocs(query(collection(db, "predictions"), where("userId", "==", currentUser.uid)));
+  const snap = await getDocs(query(collection(db, "v12_predictions"), where("userId", "==", currentUser.uid)));
   const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
     .sort((a, b) => (b.updatedAt?.seconds || b.createdAt?.seconds || 0) - (a.updatedAt?.seconds || a.createdAt?.seconds || 0));
 
@@ -405,32 +516,26 @@ async function loadMyPredictions() {
 
 async function loadRanking() {
   const games = await getAllGames();
-  const usersSnap = await getDocs(collection(db, "users"));
-  const predictionsSnap = await getDocs(collection(db, "predictions"));
+  const usersSnap = await getDocs(collection(db, "v12_users"));
+  const predictionsSnap = await getDocs(collection(db, "v12_predictions"));
 
   const ranking = {};
 
   usersSnap.docs.forEach(docSnap => {
     const user = docSnap.data();
     if (user.role === "user") {
-      ranking[docSnap.id] = {
-        name: user.name,
-        points: 0
-      };
+      ranking[docSnap.id] = { name: user.name, points: 0 };
     }
   });
 
   predictionsSnap.docs.forEach(docSnap => {
     const p = docSnap.data();
     const game = games.find(g => String(g.id) === String(p.gameId));
-
     if (!game || !ranking[p.userId]) return;
-
     ranking[p.userId].points += calculatePoints(p.prediction, game.result, game, p.doubled);
   });
 
   const list = Object.values(ranking).sort((a, b) => b.points - a.points);
-
   const tbody = document.getElementById("rankingTable");
 
   if (!list.length) {
@@ -465,7 +570,7 @@ async function createGame() {
 
   const kickoff = `${date}T${time}:00-03:00`;
 
-  await addDoc(collection(db, "games"), {
+  await addDoc(collection(db, "v12_games"), {
     date,
     kickoff,
     group,
@@ -490,9 +595,9 @@ async function loadAdminData() {
   await loadAllPredictions();
   await loadUsers();
 
-  const usersSnap = await getDocs(collection(db, "users"));
-  const gamesSnap = await getDocs(collection(db, "games"));
-  const predictionsSnap = await getDocs(collection(db, "predictions"));
+  const usersSnap = await getDocs(collection(db, "v12_users"));
+  const gamesSnap = await getDocs(collection(db, "v12_games"));
+  const predictionsSnap = await getDocs(collection(db, "v12_predictions"));
   const today = getTodayBR();
   const todayGames = gamesSnap.docs.filter(d => d.data().date === today).length;
 
@@ -512,6 +617,7 @@ async function loadAdminGamesTable() {
       <td>${g.group || ""}</td>
       <td>${g.home} x ${g.away}</td>
       <td>${g.result || "Pendente"}</td>
+      <td><button class="danger" onclick="deleteGame('${g.id}')">Excluir</button></td>
     </tr>
   `).join("");
 }
@@ -520,7 +626,7 @@ async function loadAdminResultCards() {
   const date = document.getElementById("adminDateSelect").value;
   if (!date) return;
 
-  const snap = await getDocs(query(collection(db, "games"), where("date", "==", date), orderBy("kickoff")));
+  const snap = await getDocs(query(collection(db, "v12_games"), where("date", "==", date), orderBy("kickoff")));
   const games = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
   document.getElementById("adminResultsCards").innerHTML = games.map(g => `
@@ -544,16 +650,67 @@ async function loadAdminResultCards() {
 
 async function saveResult(gameId, result) {
   if (currentProfile.role !== "admin") return;
-
-  await updateDoc(doc(db, "games", gameId), { result });
+  await updateDoc(doc(db, "v12_games", gameId), { result });
   await loadAdminData();
   await loadRanking();
   await loadMyPredictions();
 }
 
+async function deleteGame(gameId) {
+  if (currentProfile.role !== "admin") return;
+  if (!confirm("Excluir este jogo?")) return;
+  await deleteDoc(doc(db, "v12_games", gameId));
+  await loadAdminData();
+}
+
+async function seedCalendar() {
+  if (currentProfile.role !== "admin") return;
+  const msg = document.getElementById("adminMsg");
+  msg.textContent = "Cadastrando calendário...";
+
+  for (const [id, date, time, group, home, away] of calendarGames) {
+    await setDoc(doc(db, "v12_games", id), {
+      date,
+      kickoff: `${date}T${time}:00-03:00`,
+      group,
+      home,
+      away,
+      result: "",
+      createdAt: serverTimestamp()
+    }, { merge: true });
+  }
+
+  msg.textContent = "Calendário cadastrado com sucesso.";
+  await loadAdminData();
+}
+
+async function clearCollection(name) {
+  const snap = await getDocs(collection(db, name));
+  for (const d of snap.docs) {
+    await deleteDoc(doc(db, name, d.id));
+  }
+}
+
+async function clearV12Database() {
+  if (currentProfile.role !== "admin") return;
+  if (!confirm("Isso apagará jogos, palpites e usuários do V12. Continuar?")) return;
+
+  await clearCollection("v12_predictions");
+  await clearCollection("v12_games");
+  const usersSnap = await getDocs(collection(db, "v12_users"));
+  for (const d of usersSnap.docs) {
+    if (d.data().email !== ADMIN_EMAIL) {
+      await deleteDoc(doc(db, "v12_users", d.id));
+    }
+  }
+
+  document.getElementById("adminMsg").textContent = "Banco V12 limpo.";
+  await loadAdminData();
+}
+
 async function loadAllPredictions() {
   const games = await getAllGames();
-  const snap = await getDocs(collection(db, "predictions"));
+  const snap = await getDocs(collection(db, "v12_predictions"));
   const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
     .sort((a, b) => (b.updatedAt?.seconds || b.createdAt?.seconds || 0) - (a.updatedAt?.seconds || a.createdAt?.seconds || 0));
 
@@ -574,7 +731,7 @@ async function loadAllPredictions() {
 }
 
 async function loadUsers() {
-  const snap = await getDocs(collection(db, "users"));
+  const snap = await getDocs(collection(db, "v12_users"));
   const users = snap.docs.map(d => d.data()).sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
   document.getElementById("usersTable").innerHTML = users.map(u => `
@@ -589,7 +746,7 @@ async function loadUsers() {
 
 async function exportPredictionsCSV() {
   const games = await getAllGames();
-  const snap = await getDocs(collection(db, "predictions"));
+  const snap = await getDocs(collection(db, "v12_predictions"));
   const rows = [["Enviado em", "Participante", "Email", "Data", "Jogo", "Palpite", "Dobrado"]];
 
   snap.docs.forEach(d => {
@@ -607,7 +764,7 @@ async function exportPredictionsCSV() {
     ]);
   });
 
-  const csv = rows.map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(";")).join("\n");
+  const csv = rows.map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(";")).join("\\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -616,21 +773,6 @@ async function exportPredictionsCSV() {
   a.click();
   URL.revokeObjectURL(url);
 }
-
-
-document.addEventListener("DOMContentLoaded", () => {
-  const loginBtn = document.getElementById("loginGoogleBtn");
-  const createBtn = document.getElementById("createGoogleBtn");
-
-  if (loginBtn) loginBtn.addEventListener("click", loginGoogle);
-  if (createBtn) createBtn.addEventListener("click", loginGoogle);
-
-  getRedirectResult(auth).catch(error => {
-    console.error("Erro no retorno do login:", error);
-    const msg = document.getElementById("loginMsg");
-    if (msg) msg.textContent = "Erro no retorno do login: " + (error.code || error.message);
-  });
-});
 
 onAuthStateChanged(auth, async user => {
   currentUser = user;
@@ -645,7 +787,7 @@ onAuthStateChanged(auth, async user => {
   }
 
   try {
-    currentProfile = await ensureUserProfile(user);
+    currentProfile = await ensureProfile(user);
 
     document.getElementById("loginPage").classList.add("hidden");
     document.getElementById("nav").classList.remove("hidden");
@@ -653,6 +795,8 @@ onAuthStateChanged(auth, async user => {
 
     if (currentProfile.role === "admin") {
       document.getElementById("adminBtn").classList.remove("hidden");
+    } else {
+      document.getElementById("adminBtn").classList.add("hidden");
     }
 
     await loadDates("dateSelect");
@@ -661,13 +805,10 @@ onAuthStateChanged(auth, async user => {
     showPage("palpites");
 
     if (unsubscribeRanking) unsubscribeRanking();
-
-    unsubscribeRanking = onSnapshot(collection(db, "predictions"), () => {
-      loadRanking();
-    });
+    unsubscribeRanking = onSnapshot(collection(db, "v12_predictions"), () => loadRanking());
   } catch (error) {
     console.error(error);
-    document.getElementById("loginMsg").textContent = "Erro ao carregar dados: " + (error.code || error.message);
+    document.getElementById("loginMsg").textContent = "Erro ao carregar perfil: " + (error.code || error.message);
     document.getElementById("loginPage").classList.remove("hidden");
   }
 });

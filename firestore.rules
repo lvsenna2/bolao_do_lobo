@@ -7,36 +7,32 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isAdminEmail() {
+    function isFixedAdmin() {
       return signedIn() && request.auth.token.email == "lvaz@id.uff.br";
     }
 
-    function isAdmin() {
-      return isAdminEmail() ||
-        (
-          signedIn() &&
-          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin"
-        );
-    }
-
-    match /users/{userId} {
+    match /v12_users/{userId} {
       allow read: if signedIn();
       allow create: if signedIn() && request.auth.uid == userId;
-      allow update: if signedIn() && (request.auth.uid == userId || isAdmin());
-      allow delete: if isAdmin();
+      allow update: if signedIn() && (request.auth.uid == userId || isFixedAdmin());
+      allow delete: if isFixedAdmin();
     }
 
-    match /games/{gameId} {
+    match /v12_games/{gameId} {
       allow read: if signedIn();
-      allow write: if isAdmin();
+      allow write: if isFixedAdmin();
     }
 
-    match /predictions/{predictionId} {
-      allow read: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    match /v12_predictions/{predictionId} {
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid || isFixedAdmin());
       allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
       allow update: if signedIn() && resource.data.userId == request.auth.uid;
-      allow delete: if isAdmin();
+      allow delete: if isFixedAdmin();
+    }
+
+    match /v12_settings/{docId} {
+      allow read: if signedIn();
+      allow write: if isFixedAdmin();
     }
   }
 }

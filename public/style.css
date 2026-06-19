@@ -48,12 +48,12 @@ body{
 
 .hero p{color:var(--muted);margin:12px 0 0}
 
-nav,.admin-tabs{
+nav,.admin-tabs,.tabs{
   display:flex;
   justify-content:center;
   gap:10px;
   flex-wrap:wrap;
-  margin-top:16px;
+  margin:16px 0;
 }
 
 button{
@@ -67,16 +67,12 @@ button{
   background:linear-gradient(135deg,#16a34a,#15803d);
 }
 
-nav button,.admin-tabs button{
+.danger{background:linear-gradient(135deg,#dc2626,#991b1b)}
+
+nav button,.admin-tabs button,.tabs button{
   background:#111827;
   border:1px solid rgba(250,204,21,.35);
   border-radius:999px;
-}
-
-.google-btn{
-  background:#fff;
-  color:#111827;
-  border:1px solid #ddd;
 }
 
 main{max-width:1180px;margin:auto;padding:22px}
@@ -93,6 +89,7 @@ section{
 .login-card{max-width:850px;margin:26px auto}
 
 h2{color:var(--gold);margin:0 0 14px}
+h3{color:white;margin:14px 0 8px}
 
 input,select{
   width:100%;
@@ -209,6 +206,7 @@ th,td{
 .prize3{background:#fed7aa;font-weight:bold}
 
 .msg{margin:10px 0;color:var(--gold);font-weight:bold}
+.small{color:var(--muted)}
 .rules{margin-top:24px;line-height:1.7}
 .rules strong{color:var(--gold)}
 .hidden{display:none!important}
