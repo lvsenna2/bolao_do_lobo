@@ -19,6 +19,6 @@ jobs:
         run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > service-account.json
 
       - name: Deploy
-        run: firebase deploy --project bolaodolobo-e867e
+        run: firebase deploy --only hosting --project bolaodolobo-e867e
         env:
           GOOGLE_APPLICATION_CREDENTIALS: service-account.json
