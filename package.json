@@ -1,8 +1,5 @@
 {
-  "name": "bolao-do-lobo-google-login",
-  "version": "9.0.0",
-  "private": true,
-  "scripts": {
-    "deploy": "firebase deploy"
-  }
+  "name": "bolao-do-lobo-v10-login-google",
+  "version": "10.0.0",
+  "private": true
 }

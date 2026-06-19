@@ -1,1 +1,199 @@
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Bolão do Lobo</title><link rel="stylesheet" href="./style.css"></head><body><header class="hero"><div class="logo"><span>🐺</span><h1>BOLÃO DO LOBO</h1><span>⚽</span></div><p>Copa do Mundo 2026 • Palpites • Ranking • Premiação</p><nav id="nav" class="hidden"><button onclick="showPage('palpites')">Palpites</button><button onclick="showPage('meus')">Meus palpites</button><button onclick="showPage('ranking')">Ranking</button><button id="adminBtn" class="hidden" onclick="showPage('admin')">ADM</button><button onclick="logout()">Sair</button></nav></header><main><section id="loginPage" class="login-card"><h2>Entrar na alcateia</h2><p>Entre com sua conta Google para participar.</p><button class="google-btn" onclick="loginGoogle()">🔐 Entrar com Google</button><div id="loginMsg" class="msg"></div><div class="rules"><h2>Premiação</h2><p>🥇 1º lugar: <strong>R$ 150</strong></p><p>🥈 2º lugar: <strong>R$ 40</strong></p><p>🥉 3º lugar: <strong>R$ 20</strong></p></div></section><section id="palpitesPage" class="hidden"><h2>Palpites do dia</h2><p id="welcome" class="msg"></p><div class="grid"><select id="dateSelect" onchange="loadGamesForSelectedDate()"></select><div class="info-card"><strong>Regra:</strong><br>Apenas jogos do dia ficam liberados. Escolha todos os palpites abertos e marque 1 dobrado.</div></div><div id="dateMsg" class="msg"></div><div id="games" class="cards-grid"></div><button onclick="savePredictions()">Salvar palpites</button><div id="saveMsg" class="msg"></div></section><section id="meusPage" class="hidden"><h2>Meus palpites</h2><button onclick="loadMyPredictions()">Atualizar</button><div class="table-wrap"><table><thead><tr><th>Enviado em</th><th>Data</th><th>Jogo</th><th>Palpite</th><th>Dobrado</th><th>Resultado</th><th>Pontos</th></tr></thead><tbody id="myPredictionsTable"></tbody></table></div></section><section id="rankingPage" class="hidden"><h2>Ranking da alcateia</h2><button onclick="loadRanking()">Atualizar Ranking</button><div class="table-wrap"><table><thead><tr><th>Posição</th><th>Participante</th><th>Pontos</th><th>Prêmio</th></tr></thead><tbody id="rankingTable"></tbody></table></div></section><section id="adminPage" class="hidden"><h2>Painel ADM</h2><div class="admin-tabs"><button onclick="showAdminTab('dashboard')">Dashboard</button><button onclick="showAdminTab('jogos')">Jogos</button><button onclick="showAdminTab('resultados')">Resultados</button><button onclick="showAdminTab('palpites')">Palpites</button><button onclick="showAdminTab('usuarios')">Usuários</button></div><div id="adminDashboard"><h2>Resumo</h2><div class="stats"><div class="stat"><strong id="statUsers">0</strong><span>Participantes</span></div><div class="stat"><strong id="statGames">0</strong><span>Jogos</span></div><div class="stat"><strong id="statPredictions">0</strong><span>Palpites</span></div><div class="stat"><strong id="statTodayGames">0</strong><span>Jogos hoje</span></div></div></div><div id="adminJogos" class="hidden"><h2>Cadastrar jogo</h2><div class="grid"><input id="gameDate" type="date"><input id="gameTime" type="time"><input id="gameGroup" placeholder="Grupo"><input id="homeTeam" placeholder="Time da casa"><input id="awayTeam" placeholder="Time visitante"></div><button onclick="createGame()">Cadastrar jogo</button><div id="gameMsg" class="msg"></div><h2>Jogos cadastrados</h2><div class="table-wrap"><table><thead><tr><th>Data</th><th>Hora</th><th>Grupo</th><th>Jogo</th><th>Resultado</th></tr></thead><tbody id="adminGamesTable"></tbody></table></div></div><div id="adminResultados" class="hidden"><h2>Lançar resultados</h2><select id="adminDateSelect" onchange="loadAdminResultCards()"></select><div id="adminResultsCards" class="cards-grid"></div></div><div id="adminPalpites" class="hidden"><h2>Todos os palpites</h2><button onclick="exportPredictionsCSV()">Exportar CSV</button><div class="table-wrap"><table><thead><tr><th>Enviado em</th><th>Participante</th><th>Data</th><th>Jogo</th><th>Palpite</th><th>Dobrado</th></tr></thead><tbody id="allPredictionsTable"></tbody></table></div></div><div id="adminUsuarios" class="hidden"><h2>Usuários</h2><div class="table-wrap"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Criado em</th></tr></thead><tbody id="usersTable"></tbody></table></div></div></section></main><script type="module" src="./app.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bolão do Lobo</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+<header class="hero">
+  <div class="logo">
+    <span>🐺</span>
+    <h1>BOLÃO DO LOBO</h1>
+    <span>⚽</span>
+  </div>
+  <p>Copa do Mundo 2026 • Palpites • Ranking • Premiação</p>
+
+  <nav id="nav" class="hidden">
+    <button onclick="showPage('palpites')">Palpites</button>
+    <button onclick="showPage('meus')">Meus palpites</button>
+    <button onclick="showPage('ranking')">Ranking</button>
+    <button id="adminBtn" class="hidden" onclick="showPage('admin')">ADM</button>
+    <button onclick="logout()">Sair</button>
+  </nav>
+</header>
+
+<main>
+  <section id="loginPage" class="login-card">
+    <h2>Entrar ou criar conta</h2>
+    <p>Use sua conta Google. Se for seu primeiro acesso, sua conta no Bolão será criada automaticamente.</p>
+    <div class="grid">
+      <button class="google-btn" onclick="loginGoogle()">🔐 Entrar com Google</button>
+      <button class="google-btn" onclick="loginGoogle()">🆕 Criar conta com Google</button>
+    </div>
+    <div id="loginMsg" class="msg"></div>
+
+    <div class="rules">
+      <h2>Premiação</h2>
+      <p>🥇 1º lugar: <strong>R$ 150</strong></p>
+      <p>🥈 2º lugar: <strong>R$ 40</strong></p>
+      <p>🥉 3º lugar: <strong>R$ 20</strong></p>
+    </div>
+  </section>
+
+  <section id="palpitesPage" class="hidden">
+    <h2>Palpites do dia</h2>
+    <p id="welcome" class="msg"></p>
+
+    <div class="grid">
+      <select id="dateSelect" onchange="loadGamesForSelectedDate()"></select>
+      <div class="info-card">
+        <strong>Regra:</strong><br>
+        Apenas os jogos do dia ficam liberados. Escolha todos os palpites abertos e marque 1 dobrado.
+      </div>
+    </div>
+
+    <div id="dateMsg" class="msg"></div>
+    <div id="games" class="cards-grid"></div>
+    <button onclick="savePredictions()">Salvar palpites</button>
+    <div id="saveMsg" class="msg"></div>
+  </section>
+
+  <section id="meusPage" class="hidden">
+    <h2>Meus palpites</h2>
+    <button onclick="loadMyPredictions()">Atualizar</button>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Enviado em</th>
+            <th>Data</th>
+            <th>Jogo</th>
+            <th>Palpite</th>
+            <th>Dobrado</th>
+            <th>Resultado</th>
+            <th>Pontos</th>
+          </tr>
+        </thead>
+        <tbody id="myPredictionsTable"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="rankingPage" class="hidden">
+    <h2>Ranking da alcateia</h2>
+    <button onclick="loadRanking()">Atualizar Ranking</button>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Posição</th>
+            <th>Participante</th>
+            <th>Pontos</th>
+            <th>Prêmio</th>
+          </tr>
+        </thead>
+        <tbody id="rankingTable"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="adminPage" class="hidden">
+    <h2>Painel ADM</h2>
+
+    <div class="admin-tabs">
+      <button onclick="showAdminTab('dashboard')">Dashboard</button>
+      <button onclick="showAdminTab('jogos')">Jogos</button>
+      <button onclick="showAdminTab('resultados')">Resultados</button>
+      <button onclick="showAdminTab('palpites')">Palpites</button>
+      <button onclick="showAdminTab('usuarios')">Usuários</button>
+    </div>
+
+    <div id="adminDashboard">
+      <h2>Resumo</h2>
+      <div class="stats">
+        <div class="stat"><strong id="statUsers">0</strong><span>Participantes</span></div>
+        <div class="stat"><strong id="statGames">0</strong><span>Jogos</span></div>
+        <div class="stat"><strong id="statPredictions">0</strong><span>Palpites</span></div>
+        <div class="stat"><strong id="statTodayGames">0</strong><span>Jogos hoje</span></div>
+      </div>
+    </div>
+
+    <div id="adminJogos" class="hidden">
+      <h2>Cadastrar jogo</h2>
+      <div class="grid">
+        <input id="gameDate" type="date" />
+        <input id="gameTime" type="time" />
+        <input id="gameGroup" placeholder="Grupo, ex: A" />
+        <input id="homeTeam" placeholder="Time da casa" />
+        <input id="awayTeam" placeholder="Time visitante" />
+      </div>
+      <button onclick="createGame()">Cadastrar jogo</button>
+      <div id="gameMsg" class="msg"></div>
+
+      <h2>Jogos cadastrados</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Hora</th>
+              <th>Grupo</th>
+              <th>Jogo</th>
+              <th>Resultado</th>
+            </tr>
+          </thead>
+          <tbody id="adminGamesTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="adminResultados" class="hidden">
+      <h2>Lançar resultados</h2>
+      <select id="adminDateSelect" onchange="loadAdminResultCards()"></select>
+      <div id="adminResultsCards" class="cards-grid"></div>
+    </div>
+
+    <div id="adminPalpites" class="hidden">
+      <h2>Todos os palpites</h2>
+      <button onclick="exportPredictionsCSV()">Exportar CSV</button>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Enviado em</th>
+              <th>Participante</th>
+              <th>Data</th>
+              <th>Jogo</th>
+              <th>Palpite</th>
+              <th>Dobrado</th>
+            </tr>
+          </thead>
+          <tbody id="allPredictionsTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="adminUsuarios" class="hidden">
+      <h2>Usuários</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>E-mail</th>
+              <th>Perfil</th>
+              <th>Criado em</th>
+            </tr>
+          </thead>
+          <tbody id="usersTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>

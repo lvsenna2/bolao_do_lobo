@@ -1,3 +1,28 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  updateDoc,
+  addDoc,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyClWnhvUHym5RF6jhaK0A_yBQZ_AZBECaw",
   authDomain: "bolaodolobo-e867e.firebaseapp.com",
@@ -6,41 +31,615 @@ const firebaseConfig = {
   messagingSenderId: "25366687259",
   appId: "1:25366687259:web:db57a21d2194a5986c12be"
 };
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, addDoc, query, where, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-const ADM_EMAILS=["lvaz@id.uff.br"];
-const app=initializeApp(firebaseConfig), auth=getAuth(app), provider=new GoogleAuthProvider(), db=getFirestore(app);
-let currentUser=null,currentProfile=null,currentGames=[],myPredictions=[],unsubscribeRanking=null;
-Object.assign(window,{loginGoogle,logout,showPage,showAdminTab,loadGamesForSelectedDate,savePredictions,loadMyPredictions,loadRanking,createGame,loadAdminResultCards,saveResult,exportPredictionsCSV});
-function getTodayBR(){const p=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());return `${p.find(x=>x.type==='year').value}-${p.find(x=>x.type==='month').value}-${p.find(x=>x.type==='day').value}`;}
-function formatDate(d){if(!d)return"";const [y,m,day]=d.split("-");return `${day}/${m}/${y}`;}
-function formatTimeFromISO(iso){return iso?new Date(iso).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}):"";}
-function formatDateTime(v){if(!v)return"";const d=v.toDate?v.toDate():new Date(v);return d.toLocaleString("pt-BR");}
-function prize(i){return i===0?"R$ 150":i===1?"R$ 40":i===2?"R$ 20":"";}
-function isAdminEmail(e){return ADM_EMAILS.includes(String(e).toLowerCase());}
-function isDateReleased(d){return d===getTodayBR();}
-function isLocked(g){return !isDateReleased(g.date)||Date.now()>=new Date(g.kickoff).getTime();}
-function calculatePoints(pred,result,g,doubled){if(!result)return 0;let pts=0;if(pred==="1X")pts=(result===g.home||result==="Empate")?1:0;else if(pred==="2X")pts=(result===g.away||result==="Empate")?1:0;else pts=pred===result?3:0;if(doubled&&pts>0)pts=(pred==="1X"||pred==="2X")?3:6;return pts;}
-async function loginGoogle(){try{await signInWithPopup(auth,provider)}catch(e){document.getElementById("loginMsg").textContent="Erro ao entrar com Google.";console.error(e)}}
-async function logout(){await signOut(auth);location.reload();}
-async function ensureUserProfile(user){const ref=doc(db,"users",user.uid), snap=await getDoc(ref), role=isAdminEmail(user.email)?"admin":"user";const data={uid:user.uid,name:user.displayName||user.email,email:user.email,photoURL:user.photoURL||"",role,updatedAt:serverTimestamp()};if(!snap.exists())await setDoc(ref,{...data,points:0,createdAt:serverTimestamp()});else await updateDoc(ref,data);return (await getDoc(ref)).data();}
-function showPage(page){["loginPage","palpitesPage","meusPage","rankingPage","adminPage"].forEach(id=>document.getElementById(id).classList.add("hidden"));if(page==="palpites"){document.getElementById("palpitesPage").classList.remove("hidden");loadDates("dateSelect").then(loadGamesForSelectedDate)}if(page==="meus"){document.getElementById("meusPage").classList.remove("hidden");loadMyPredictions()}if(page==="ranking"){document.getElementById("rankingPage").classList.remove("hidden");loadRanking()}if(page==="admin"){document.getElementById("adminPage").classList.remove("hidden");showAdminTab("dashboard");loadAdminData()}}
-function showAdminTab(tab){["adminDashboard","adminJogos","adminResultados","adminPalpites","adminUsuarios"].forEach(id=>document.getElementById(id).classList.add("hidden"));if(tab==="dashboard")document.getElementById("adminDashboard").classList.remove("hidden");if(tab==="jogos")document.getElementById("adminJogos").classList.remove("hidden");if(tab==="resultados")document.getElementById("adminResultados").classList.remove("hidden");if(tab==="palpites")document.getElementById("adminPalpites").classList.remove("hidden");if(tab==="usuarios")document.getElementById("adminUsuarios").classList.remove("hidden");}
-async function getAllGames(){const snap=await getDocs(query(collection(db,"games"),orderBy("kickoff")));return snap.docs.map(d=>({id:d.id,...d.data()}));}
-async function loadDates(selectId){const games=await getAllGames(),dates=[...new Set(games.map(g=>g.date))].sort(),select=document.getElementById(selectId),today=getTodayBR();if(!dates.length){select.innerHTML='<option value="">Nenhum jogo cadastrado</option>';return}select.innerHTML=dates.map(d=>`<option value="${d}">${formatDate(d)}${d===today?' - HOJE':d>today?' - bloqueado':' - encerrado'}</option>`).join('');select.value=dates.includes(today)?today:(dates.find(d=>d>today)||dates[dates.length-1]);}
-async function loadMyPredictionsRaw(){const snap=await getDocs(query(collection(db,"predictions"),where("userId","==",currentUser.uid)));myPredictions=snap.docs.map(d=>({id:d.id,...d.data()}));}
-async function loadGamesForSelectedDate(){await loadMyPredictionsRaw();const date=document.getElementById("dateSelect").value,box=document.getElementById("games"),msg=document.getElementById("dateMsg");if(!date){box.innerHTML='<div class="info-card">Nenhum jogo cadastrado.</div>';return}const snap=await getDocs(query(collection(db,"games"),where("date","==",date),orderBy("kickoff")));currentGames=snap.docs.map(d=>({id:d.id,...d.data()}));msg.textContent=date!==getTodayBR()?(date>getTodayBR()?"Esta data ainda está bloqueada. Volte no dia da rodada.":"Esta data já foi encerrada. Você pode visualizar, mas não alterar."):"Data de hoje liberada. Cada jogo bloqueia automaticamente no horário de início.";if(!currentGames.length){box.innerHTML='<div class="info-card">Nenhum jogo nesta data.</div>';return}box.innerHTML=currentGames.map(g=>{const locked=isLocked(g),saved=myPredictions.find(p=>String(p.gameId)===String(g.id)),sp=saved?saved.prediction:"",sd=saved&&saved.doubled?"checked":"",status=locked?(!isDateReleased(g.date)?"Data bloqueada":"Jogo iniciado"):"Aberto";return `<div class="game-card ${locked?'locked':''}"><div class="game-head"><span class="badge">Grupo ${g.group||'-'}</span>${locked?`<span class="lock-badge">${status}</span>`:`<span class="badge">${status}</span>`}</div><div class="match">${g.home} <span class="vs">x</span> ${g.away}</div><div class="kickoff">Início: ${formatDate(g.date)} às ${formatTimeFromISO(g.kickoff)}</div><select id="prediction_${g.id}" ${locked?'disabled':''}><option value="">Selecione seu palpite</option><option value="${g.home}" ${sp===g.home?'selected':''}>${g.home} vence - 3 pts</option><option value="Empate" ${sp==='Empate'?'selected':''}>Empate - 3 pts</option><option value="${g.away}" ${sp===g.away?'selected':''}>${g.away} vence - 3 pts</option><option value="1X" ${sp==='1X'?'selected':''}>1X - ${g.home} ou empate - 1 pt</option><option value="2X" ${sp==='2X'?'selected':''}>2X - ${g.away} ou empate - 1 pt</option></select><label class="double-box"><input type="radio" name="doubled" value="${g.id}" ${sd} ${locked?'disabled':''}>🐺 Dobrar este palpite</label></div>`}).join('');}
-async function savePredictions(){const date=document.getElementById("dateSelect").value,msg=document.getElementById("saveMsg");if(date!==getTodayBR()){msg.textContent="Apenas os jogos do dia ficam liberados para palpite.";return}const unlocked=currentGames.filter(g=>!isLocked(g));if(!unlocked.length){msg.textContent="Todos os jogos desta data já estão bloqueados.";return}const doubled=document.querySelector("input[name='doubled']:checked:not(:disabled)");if(!doubled){msg.textContent="Escolha um jogo aberto para dobrar.";return}for(const g of unlocked){const prediction=document.getElementById(`prediction_${g.id}`).value;if(!prediction){msg.textContent="Preencha todos os palpites dos jogos ainda abertos.";return}await setDoc(doc(db,"predictions",`${currentUser.uid}_${g.id}`),{userId:currentUser.uid,userName:currentProfile.name,userEmail:currentProfile.email,gameId:g.id,date,prediction,doubled:String(g.id)===String(doubled.value),createdAt:serverTimestamp(),updatedAt:serverTimestamp()},{merge:true})}msg.textContent="Palpites salvos com sucesso.";await loadGamesForSelectedDate();await loadMyPredictions();await loadRanking();}
-async function loadMyPredictions(){const games=await getAllGames(),snap=await getDocs(query(collection(db,"predictions"),where("userId","==",currentUser.uid))),list=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0)),tbody=document.getElementById("myPredictionsTable");if(!list.length){tbody.innerHTML='<tr><td colspan="7">Nenhum palpite cadastrado ainda.</td></tr>';return}tbody.innerHTML=list.map(p=>{const g=games.find(x=>String(x.id)===String(p.gameId)),pts=g?calculatePoints(p.prediction,g.result,g,p.doubled):0;return `<tr><td>${formatDateTime(p.updatedAt||p.createdAt)}</td><td>${formatDate(p.date)}</td><td>${g?`${g.home} x ${g.away}`:"Jogo removido"}</td><td>${p.prediction}</td><td>${p.doubled?"Sim":"Não"}</td><td>${g?.result||"Pendente"}</td><td>${pts}</td></tr>`}).join('');}
-async function loadRanking(){const games=await getAllGames(),us=await getDocs(collection(db,"users")),ps=await getDocs(collection(db,"predictions")),ranking={};us.docs.forEach(d=>{const u=d.data();if(u.role==="user")ranking[d.id]={name:u.name,points:0}});ps.docs.forEach(d=>{const p=d.data(),g=games.find(x=>String(x.id)===String(p.gameId));if(g&&ranking[p.userId])ranking[p.userId].points+=calculatePoints(p.prediction,g.result,g,p.doubled)});const list=Object.values(ranking).sort((a,b)=>b.points-a.points),tbody=document.getElementById("rankingTable");tbody.innerHTML=list.length?list.map((it,i)=>`<tr class="${i===0?'prize1':i===1?'prize2':i===2?'prize3':''}"><td>${i+1}º</td><td>${it.name}</td><td>${it.points}</td><td>${prize(i)}</td></tr>`).join(''):'<tr><td colspan="4">Ranking ainda vazio.</td></tr>';}
-async function createGame(){if(currentProfile.role!=="admin")return;const date=document.getElementById("gameDate").value,time=document.getElementById("gameTime").value,group=document.getElementById("gameGroup").value.trim().toUpperCase(),home=document.getElementById("homeTeam").value.trim(),away=document.getElementById("awayTeam").value.trim(),msg=document.getElementById("gameMsg");if(!date||!time||!home||!away){msg.textContent="Preencha data, hora, time da casa e visitante.";return}await addDoc(collection(db,"games"),{date,kickoff:`${date}T${time}:00-03:00`,group,home,away,result:"",createdAt:serverTimestamp()});msg.textContent="Jogo cadastrado.";document.getElementById("homeTeam").value="";document.getElementById("awayTeam").value="";await loadAdminData();}
-async function loadAdminData(){if(currentProfile.role!=="admin")return;await loadDates("adminDateSelect");await loadAdminGamesTable();await loadAdminResultCards();await loadAllPredictions();await loadUsers();const us=await getDocs(collection(db,"users")),gs=await getDocs(collection(db,"games")),ps=await getDocs(collection(db,"predictions")),today=getTodayBR();document.getElementById("statUsers").textContent=us.docs.filter(d=>d.data().role==="user").length;document.getElementById("statGames").textContent=gs.size;document.getElementById("statPredictions").textContent=ps.size;document.getElementById("statTodayGames").textContent=gs.docs.filter(d=>d.data().date===today).length;}
-async function loadAdminGamesTable(){const games=await getAllGames();document.getElementById("adminGamesTable").innerHTML=games.map(g=>`<tr><td>${formatDate(g.date)}</td><td>${formatTimeFromISO(g.kickoff)}</td><td>${g.group||""}</td><td>${g.home} x ${g.away}</td><td>${g.result||"Pendente"}</td></tr>`).join('');}
-async function loadAdminResultCards(){const date=document.getElementById("adminDateSelect").value;if(!date)return;const snap=await getDocs(query(collection(db,"games"),where("date","==",date),orderBy("kickoff"))),games=snap.docs.map(d=>({id:d.id,...d.data()}));document.getElementById("adminResultsCards").innerHTML=games.map(g=>`<div class="game-card"><div class="game-head"><span class="badge">Grupo ${g.group||'-'}</span><span class="badge">${g.result?"Resultado lançado":"Pendente"}</span></div><div class="match">${g.home} <span class="vs">x</span> ${g.away}</div><select onchange="saveResult('${g.id}', this.value)"><option value="">Resultado oficial</option><option value="${g.home}" ${g.result===g.home?'selected':''}>${g.home}</option><option value="Empate" ${g.result==='Empate'?'selected':''}>Empate</option><option value="${g.away}" ${g.result===g.away?'selected':''}>${g.away}</option></select></div>`).join('');}
-async function saveResult(gameId,result){if(currentProfile.role!=="admin")return;await updateDoc(doc(db,"games",gameId),{result});await loadAdminData();await loadRanking();await loadMyPredictions();}
-async function loadAllPredictions(){const games=await getAllGames(),snap=await getDocs(collection(db,"predictions")),list=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.updatedAt?.seconds||b.createdAt?.seconds||0)-(a.updatedAt?.seconds||a.createdAt?.seconds||0));document.getElementById("allPredictionsTable").innerHTML=list.map(p=>{const g=games.find(x=>String(x.id)===String(p.gameId));return `<tr><td>${formatDateTime(p.updatedAt||p.createdAt)}</td><td>${p.userName||""}</td><td>${formatDate(p.date)}</td><td>${g?`${g.home} x ${g.away}`:"Jogo removido"}</td><td>${p.prediction}</td><td>${p.doubled?"Sim":"Não"}</td></tr>`}).join('');}
-async function loadUsers(){const snap=await getDocs(collection(db,"users")),users=snap.docs.map(d=>d.data()).sort((a,b)=>String(a.name).localeCompare(String(b.name)));document.getElementById("usersTable").innerHTML=users.map(u=>`<tr><td>${u.name}</td><td>${u.email}</td><td>${u.role}</td><td>${formatDateTime(u.createdAt)}</td></tr>`).join('');}
-async function exportPredictionsCSV(){const games=await getAllGames(),snap=await getDocs(collection(db,"predictions")),rows=[["Enviado em","Participante","Email","Data","Jogo","Palpite","Dobrado"]];snap.docs.forEach(d=>{const p=d.data(),g=games.find(x=>String(x.id)===String(p.gameId));rows.push([formatDateTime(p.updatedAt||p.createdAt),p.userName||"",p.userEmail||"",formatDate(p.date),g?`${g.home} x ${g.away}`:"",p.prediction,p.doubled?"Sim":"Não"])});const csv=rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(';')).join('
-'),blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='palpites_bolao_do_lobo.csv';a.click();URL.revokeObjectURL(url);}
-onAuthStateChanged(auth,async user=>{currentUser=user;if(!user){document.getElementById("loginPage").classList.remove("hidden");document.getElementById("nav").classList.add("hidden");["palpitesPage","meusPage","rankingPage","adminPage"].forEach(id=>document.getElementById(id).classList.add("hidden"));return}currentProfile=await ensureUserProfile(user);document.getElementById("loginPage").classList.add("hidden");document.getElementById("nav").classList.remove("hidden");document.getElementById("welcome").textContent=`Bem-vindo, ${currentProfile.name}`;if(currentProfile.role==="admin")document.getElementById("adminBtn").classList.remove("hidden");await loadDates("dateSelect");await loadGamesForSelectedDate();await loadRanking();showPage("palpites");if(unsubscribeRanking)unsubscribeRanking();unsubscribeRanking=onSnapshot(collection(db,"predictions"),()=>loadRanking());});
+
+const ADM_EMAILS = ["lvaz@id.uff.br"];
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+const db = getFirestore(app);
+
+let currentUser = null;
+let currentProfile = null;
+let currentGames = [];
+let myPredictions = [];
+let unsubscribeRanking = null;
+
+window.loginGoogle = loginGoogle;
+window.logout = logout;
+window.showPage = showPage;
+window.showAdminTab = showAdminTab;
+window.loadGamesForSelectedDate = loadGamesForSelectedDate;
+window.savePredictions = savePredictions;
+window.loadMyPredictions = loadMyPredictions;
+window.loadRanking = loadRanking;
+window.createGame = createGame;
+window.loadAdminResultCards = loadAdminResultCards;
+window.saveResult = saveResult;
+window.exportPredictionsCSV = exportPredictionsCSV;
+
+function getTodayBR() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date());
+
+  const year = parts.find(p => p.type === "year").value;
+  const month = parts.find(p => p.type === "month").value;
+  const day = parts.find(p => p.type === "day").value;
+  return `${year}-${month}-${day}`;
+}
+
+function formatDate(date) {
+  if (!date) return "";
+  const [y, m, d] = date.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+function formatTimeFromISO(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatDateTime(value) {
+  if (!value) return "";
+  const date = value.toDate ? value.toDate() : new Date(value);
+  return date.toLocaleString("pt-BR");
+}
+
+function prize(index) {
+  if (index === 0) return "R$ 150";
+  if (index === 1) return "R$ 40";
+  if (index === 2) return "R$ 20";
+  return "";
+}
+
+function isAdminEmail(email) {
+  return ADM_EMAILS.includes(String(email).toLowerCase());
+}
+
+function isDateReleased(date) {
+  return date === getTodayBR();
+}
+
+function isLocked(game) {
+  return !isDateReleased(game.date) || Date.now() >= new Date(game.kickoff).getTime();
+}
+
+function calculatePoints(prediction, result, game, doubled) {
+  if (!result) return 0;
+
+  let points = 0;
+
+  if (prediction === "1X") {
+    points = result === game.home || result === "Empate" ? 1 : 0;
+  } else if (prediction === "2X") {
+    points = result === game.away || result === "Empate" ? 1 : 0;
+  } else {
+    points = prediction === result ? 3 : 0;
+  }
+
+  if (doubled && points > 0) {
+    points = prediction === "1X" || prediction === "2X" ? 3 : 6;
+  }
+
+  return points;
+}
+
+async function loginGoogle() {
+  const msg = document.getElementById("loginMsg");
+  msg.textContent = "Abrindo login do Google...";
+
+  try {
+    provider.setCustomParameters({ prompt: "select_account" });
+    await signInWithPopup(auth, provider);
+    msg.textContent = "Login realizado.";
+  } catch (error) {
+    console.error(error);
+    msg.textContent = "Erro no login Google: " + (error.code || error.message);
+  }
+}
+
+async function logout() {
+  await signOut(auth);
+  location.reload();
+}
+
+async function ensureUserProfile(user) {
+  const ref = doc(db, "users", user.uid);
+  const snap = await getDoc(ref);
+  const role = isAdminEmail(user.email) ? "admin" : "user";
+
+  const data = {
+    uid: user.uid,
+    name: user.displayName || user.email,
+    email: user.email,
+    photoURL: user.photoURL || "",
+    role,
+    updatedAt: serverTimestamp()
+  };
+
+  if (!snap.exists()) {
+    await setDoc(ref, {
+      ...data,
+      points: 0,
+      createdAt: serverTimestamp()
+    });
+  } else {
+    await updateDoc(ref, data);
+  }
+
+  const updated = await getDoc(ref);
+  return updated.data();
+}
+
+function showPage(page) {
+  ["loginPage", "palpitesPage", "meusPage", "rankingPage", "adminPage"].forEach(id => {
+    document.getElementById(id).classList.add("hidden");
+  });
+
+  if (page === "palpites") {
+    document.getElementById("palpitesPage").classList.remove("hidden");
+    loadDates("dateSelect").then(loadGamesForSelectedDate);
+  }
+
+  if (page === "meus") {
+    document.getElementById("meusPage").classList.remove("hidden");
+    loadMyPredictions();
+  }
+
+  if (page === "ranking") {
+    document.getElementById("rankingPage").classList.remove("hidden");
+    loadRanking();
+  }
+
+  if (page === "admin") {
+    document.getElementById("adminPage").classList.remove("hidden");
+    showAdminTab("dashboard");
+    loadAdminData();
+  }
+}
+
+function showAdminTab(tab) {
+  ["adminDashboard", "adminJogos", "adminResultados", "adminPalpites", "adminUsuarios"].forEach(id => {
+    document.getElementById(id).classList.add("hidden");
+  });
+
+  if (tab === "dashboard") document.getElementById("adminDashboard").classList.remove("hidden");
+  if (tab === "jogos") document.getElementById("adminJogos").classList.remove("hidden");
+  if (tab === "resultados") document.getElementById("adminResultados").classList.remove("hidden");
+  if (tab === "palpites") document.getElementById("adminPalpites").classList.remove("hidden");
+  if (tab === "usuarios") document.getElementById("adminUsuarios").classList.remove("hidden");
+}
+
+async function getAllGames() {
+  const snap = await getDocs(query(collection(db, "games"), orderBy("kickoff")));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+async function loadDates(selectId) {
+  const games = await getAllGames();
+  const dates = [...new Set(games.map(g => g.date))].sort();
+  const select = document.getElementById(selectId);
+  const today = getTodayBR();
+
+  if (!dates.length) {
+    select.innerHTML = `<option value="">Nenhum jogo cadastrado</option>`;
+    return;
+  }
+
+  select.innerHTML = dates.map(date => {
+    const label = date === today ? " - HOJE" : date > today ? " - bloqueado" : " - encerrado";
+    return `<option value="${date}">${formatDate(date)}${label}</option>`;
+  }).join("");
+
+  if (dates.includes(today)) select.value = today;
+  else select.value = dates.find(d => d > today) || dates[dates.length - 1];
+}
+
+async function loadMyPredictionsRaw() {
+  const snap = await getDocs(query(collection(db, "predictions"), where("userId", "==", currentUser.uid)));
+  myPredictions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+async function loadGamesForSelectedDate() {
+  await loadMyPredictionsRaw();
+
+  const date = document.getElementById("dateSelect").value;
+  const gamesBox = document.getElementById("games");
+  const dateMsg = document.getElementById("dateMsg");
+
+  if (!date) {
+    gamesBox.innerHTML = `<div class="info-card">Nenhum jogo cadastrado.</div>`;
+    return;
+  }
+
+  const snap = await getDocs(query(collection(db, "games"), where("date", "==", date), orderBy("kickoff")));
+  currentGames = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  if (date !== getTodayBR()) {
+    dateMsg.textContent = date > getTodayBR()
+      ? "Esta data ainda está bloqueada. Volte no dia da rodada."
+      : "Esta data já foi encerrada. Você pode visualizar, mas não alterar.";
+  } else {
+    dateMsg.textContent = "Data de hoje liberada. Cada jogo bloqueia automaticamente no horário de início.";
+  }
+
+  if (!currentGames.length) {
+    gamesBox.innerHTML = `<div class="info-card">Nenhum jogo nesta data.</div>`;
+    return;
+  }
+
+  gamesBox.innerHTML = currentGames.map(game => {
+    const locked = isLocked(game);
+    const saved = myPredictions.find(p => String(p.gameId) === String(game.id));
+    const savedPrediction = saved ? saved.prediction : "";
+    const savedDoubled = saved && saved.doubled ? "checked" : "";
+    const status = locked ? (!isDateReleased(game.date) ? "Data bloqueada" : "Jogo iniciado") : "Aberto";
+
+    return `
+      <div class="game-card ${locked ? "locked" : ""}">
+        <div class="game-head">
+          <span class="badge">Grupo ${game.group || "-"}</span>
+          ${locked ? `<span class="lock-badge">${status}</span>` : `<span class="badge">${status}</span>`}
+        </div>
+
+        <div class="match">${game.home} <span class="vs">x</span> ${game.away}</div>
+        <div class="kickoff">Início: ${formatDate(game.date)} às ${formatTimeFromISO(game.kickoff)}</div>
+
+        <select id="prediction_${game.id}" ${locked ? "disabled" : ""}>
+          <option value="">Selecione seu palpite</option>
+          <option value="${game.home}" ${savedPrediction === game.home ? "selected" : ""}>${game.home} vence - 3 pts</option>
+          <option value="Empate" ${savedPrediction === "Empate" ? "selected" : ""}>Empate - 3 pts</option>
+          <option value="${game.away}" ${savedPrediction === game.away ? "selected" : ""}>${game.away} vence - 3 pts</option>
+          <option value="1X" ${savedPrediction === "1X" ? "selected" : ""}>1X - ${game.home} ou empate - 1 pt</option>
+          <option value="2X" ${savedPrediction === "2X" ? "selected" : ""}>2X - ${game.away} ou empate - 1 pt</option>
+        </select>
+
+        <label class="double-box">
+          <input type="radio" name="doubled" value="${game.id}" ${savedDoubled} ${locked ? "disabled" : ""}>
+          🐺 Dobrar este palpite
+        </label>
+      </div>
+    `;
+  }).join("");
+}
+
+async function savePredictions() {
+  const date = document.getElementById("dateSelect").value;
+  const saveMsg = document.getElementById("saveMsg");
+
+  if (date !== getTodayBR()) {
+    saveMsg.textContent = "Apenas os jogos do dia ficam liberados para palpite.";
+    return;
+  }
+
+  const unlockedGames = currentGames.filter(g => !isLocked(g));
+
+  if (!unlockedGames.length) {
+    saveMsg.textContent = "Todos os jogos desta data já estão bloqueados.";
+    return;
+  }
+
+  const doubled = document.querySelector("input[name='doubled']:checked:not(:disabled)");
+
+  if (!doubled) {
+    saveMsg.textContent = "Escolha um jogo aberto para dobrar.";
+    return;
+  }
+
+  for (const game of unlockedGames) {
+    const prediction = document.getElementById(`prediction_${game.id}`).value;
+
+    if (!prediction) {
+      saveMsg.textContent = "Preencha todos os palpites dos jogos ainda abertos.";
+      return;
+    }
+
+    const predictionId = `${currentUser.uid}_${game.id}`;
+
+    await setDoc(doc(db, "predictions", predictionId), {
+      userId: currentUser.uid,
+      userName: currentProfile.name,
+      userEmail: currentProfile.email,
+      gameId: game.id,
+      date,
+      prediction,
+      doubled: String(game.id) === String(doubled.value),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  }
+
+  saveMsg.textContent = "Palpites salvos com sucesso.";
+  await loadGamesForSelectedDate();
+  await loadMyPredictions();
+  await loadRanking();
+}
+
+async function loadMyPredictions() {
+  const games = await getAllGames();
+  const snap = await getDocs(query(collection(db, "predictions"), where("userId", "==", currentUser.uid)));
+  const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (b.updatedAt?.seconds || b.createdAt?.seconds || 0) - (a.updatedAt?.seconds || a.createdAt?.seconds || 0));
+
+  const tbody = document.getElementById("myPredictionsTable");
+
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="7">Nenhum palpite cadastrado ainda.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = list.map(p => {
+    const game = games.find(g => String(g.id) === String(p.gameId));
+    const points = game ? calculatePoints(p.prediction, game.result, game, p.doubled) : 0;
+
+    return `
+      <tr>
+        <td>${formatDateTime(p.updatedAt || p.createdAt)}</td>
+        <td>${formatDate(p.date)}</td>
+        <td>${game ? `${game.home} x ${game.away}` : "Jogo removido"}</td>
+        <td>${p.prediction}</td>
+        <td>${p.doubled ? "Sim" : "Não"}</td>
+        <td>${game?.result || "Pendente"}</td>
+        <td>${points}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+async function loadRanking() {
+  const games = await getAllGames();
+  const usersSnap = await getDocs(collection(db, "users"));
+  const predictionsSnap = await getDocs(collection(db, "predictions"));
+
+  const ranking = {};
+
+  usersSnap.docs.forEach(docSnap => {
+    const user = docSnap.data();
+    if (user.role === "user") {
+      ranking[docSnap.id] = {
+        name: user.name,
+        points: 0
+      };
+    }
+  });
+
+  predictionsSnap.docs.forEach(docSnap => {
+    const p = docSnap.data();
+    const game = games.find(g => String(g.id) === String(p.gameId));
+
+    if (!game || !ranking[p.userId]) return;
+
+    ranking[p.userId].points += calculatePoints(p.prediction, game.result, game, p.doubled);
+  });
+
+  const list = Object.values(ranking).sort((a, b) => b.points - a.points);
+
+  const tbody = document.getElementById("rankingTable");
+
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="4">Ranking ainda vazio.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = list.map((item, index) => `
+    <tr class="${index === 0 ? "prize1" : index === 1 ? "prize2" : index === 2 ? "prize3" : ""}">
+      <td>${index + 1}º</td>
+      <td>${item.name}</td>
+      <td>${item.points}</td>
+      <td>${prize(index)}</td>
+    </tr>
+  `).join("");
+}
+
+async function createGame() {
+  if (currentProfile.role !== "admin") return;
+
+  const date = document.getElementById("gameDate").value;
+  const time = document.getElementById("gameTime").value;
+  const group = document.getElementById("gameGroup").value.trim().toUpperCase();
+  const home = document.getElementById("homeTeam").value.trim();
+  const away = document.getElementById("awayTeam").value.trim();
+  const msg = document.getElementById("gameMsg");
+
+  if (!date || !time || !home || !away) {
+    msg.textContent = "Preencha data, hora, time da casa e visitante.";
+    return;
+  }
+
+  const kickoff = `${date}T${time}:00-03:00`;
+
+  await addDoc(collection(db, "games"), {
+    date,
+    kickoff,
+    group,
+    home,
+    away,
+    result: "",
+    createdAt: serverTimestamp()
+  });
+
+  msg.textContent = "Jogo cadastrado.";
+  document.getElementById("homeTeam").value = "";
+  document.getElementById("awayTeam").value = "";
+  await loadAdminData();
+}
+
+async function loadAdminData() {
+  if (currentProfile.role !== "admin") return;
+
+  await loadDates("adminDateSelect");
+  await loadAdminGamesTable();
+  await loadAdminResultCards();
+  await loadAllPredictions();
+  await loadUsers();
+
+  const usersSnap = await getDocs(collection(db, "users"));
+  const gamesSnap = await getDocs(collection(db, "games"));
+  const predictionsSnap = await getDocs(collection(db, "predictions"));
+  const today = getTodayBR();
+  const todayGames = gamesSnap.docs.filter(d => d.data().date === today).length;
+
+  document.getElementById("statUsers").textContent = usersSnap.docs.filter(d => d.data().role === "user").length;
+  document.getElementById("statGames").textContent = gamesSnap.size;
+  document.getElementById("statPredictions").textContent = predictionsSnap.size;
+  document.getElementById("statTodayGames").textContent = todayGames;
+}
+
+async function loadAdminGamesTable() {
+  const games = await getAllGames();
+
+  document.getElementById("adminGamesTable").innerHTML = games.map(g => `
+    <tr>
+      <td>${formatDate(g.date)}</td>
+      <td>${formatTimeFromISO(g.kickoff)}</td>
+      <td>${g.group || ""}</td>
+      <td>${g.home} x ${g.away}</td>
+      <td>${g.result || "Pendente"}</td>
+    </tr>
+  `).join("");
+}
+
+async function loadAdminResultCards() {
+  const date = document.getElementById("adminDateSelect").value;
+  if (!date) return;
+
+  const snap = await getDocs(query(collection(db, "games"), where("date", "==", date), orderBy("kickoff")));
+  const games = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  document.getElementById("adminResultsCards").innerHTML = games.map(g => `
+    <div class="game-card">
+      <div class="game-head">
+        <span class="badge">Grupo ${g.group || "-"}</span>
+        <span class="badge">${g.result ? "Resultado lançado" : "Pendente"}</span>
+      </div>
+
+      <div class="match">${g.home} <span class="vs">x</span> ${g.away}</div>
+
+      <select onchange="saveResult('${g.id}', this.value)">
+        <option value="">Resultado oficial</option>
+        <option value="${g.home}" ${g.result === g.home ? "selected" : ""}>${g.home}</option>
+        <option value="Empate" ${g.result === "Empate" ? "selected" : ""}>Empate</option>
+        <option value="${g.away}" ${g.result === g.away ? "selected" : ""}>${g.away}</option>
+      </select>
+    </div>
+  `).join("");
+}
+
+async function saveResult(gameId, result) {
+  if (currentProfile.role !== "admin") return;
+
+  await updateDoc(doc(db, "games", gameId), { result });
+  await loadAdminData();
+  await loadRanking();
+  await loadMyPredictions();
+}
+
+async function loadAllPredictions() {
+  const games = await getAllGames();
+  const snap = await getDocs(collection(db, "predictions"));
+  const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (b.updatedAt?.seconds || b.createdAt?.seconds || 0) - (a.updatedAt?.seconds || a.createdAt?.seconds || 0));
+
+  document.getElementById("allPredictionsTable").innerHTML = list.map(p => {
+    const game = games.find(g => String(g.id) === String(p.gameId));
+
+    return `
+      <tr>
+        <td>${formatDateTime(p.updatedAt || p.createdAt)}</td>
+        <td>${p.userName || ""}</td>
+        <td>${formatDate(p.date)}</td>
+        <td>${game ? `${game.home} x ${game.away}` : "Jogo removido"}</td>
+        <td>${p.prediction}</td>
+        <td>${p.doubled ? "Sim" : "Não"}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+async function loadUsers() {
+  const snap = await getDocs(collection(db, "users"));
+  const users = snap.docs.map(d => d.data()).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+
+  document.getElementById("usersTable").innerHTML = users.map(u => `
+    <tr>
+      <td>${u.name}</td>
+      <td>${u.email}</td>
+      <td>${u.role}</td>
+      <td>${formatDateTime(u.createdAt)}</td>
+    </tr>
+  `).join("");
+}
+
+async function exportPredictionsCSV() {
+  const games = await getAllGames();
+  const snap = await getDocs(collection(db, "predictions"));
+  const rows = [["Enviado em", "Participante", "Email", "Data", "Jogo", "Palpite", "Dobrado"]];
+
+  snap.docs.forEach(d => {
+    const p = d.data();
+    const game = games.find(g => String(g.id) === String(p.gameId));
+
+    rows.push([
+      formatDateTime(p.updatedAt || p.createdAt),
+      p.userName || "",
+      p.userEmail || "",
+      formatDate(p.date),
+      game ? `${game.home} x ${game.away}` : "",
+      p.prediction,
+      p.doubled ? "Sim" : "Não"
+    ]);
+  });
+
+  const csv = rows.map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(";")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "palpites_bolao_do_lobo.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+onAuthStateChanged(auth, async user => {
+  currentUser = user;
+
+  if (!user) {
+    document.getElementById("loginPage").classList.remove("hidden");
+    document.getElementById("nav").classList.add("hidden");
+    ["palpitesPage", "meusPage", "rankingPage", "adminPage"].forEach(id => {
+      document.getElementById(id).classList.add("hidden");
+    });
+    return;
+  }
+
+  try {
+    currentProfile = await ensureUserProfile(user);
+
+    document.getElementById("loginPage").classList.add("hidden");
+    document.getElementById("nav").classList.remove("hidden");
+    document.getElementById("welcome").textContent = `Bem-vindo, ${currentProfile.name}`;
+
+    if (currentProfile.role === "admin") {
+      document.getElementById("adminBtn").classList.remove("hidden");
+    }
+
+    await loadDates("dateSelect");
+    await loadGamesForSelectedDate();
+    await loadRanking();
+    showPage("palpites");
+
+    if (unsubscribeRanking) unsubscribeRanking();
+
+    unsubscribeRanking = onSnapshot(collection(db, "predictions"), () => {
+      loadRanking();
+    });
+  } catch (error) {
+    console.error(error);
+    document.getElementById("loginMsg").textContent = "Erro ao carregar dados: " + (error.code || error.message);
+    document.getElementById("loginPage").classList.remove("hidden");
+  }
+});

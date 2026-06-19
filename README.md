@@ -1,16 +1,16 @@
-# Bolão do Lobo - V9 Google Login
+# Bolão do Lobo V10 - Login e criação de conta Google
 
-Nova versão do zero, sem usuários antigos e sem ranking inicial.
+Esta versão tem:
 
-- Login com Google
-- ADM: lvaz@id.uff.br
+- Botão Entrar com Google
+- Botão Criar conta com Google
+- Se a pessoa já tem conta, entra normalmente
+- Se for primeiro acesso, o sistema cria o perfil automaticamente no Firestore
+- ADM automático para lvaz@id.uff.br
 - Participantes começam com 0 pontos
-- Painel ADM para cadastrar jogos, lançar resultados, ver palpites e exportar CSV
-- Firestore como banco
-- Firebase Hosting gratuito
 
-Após publicar:
-1. Entre com Google usando lvaz@id.uff.br
-2. Clique em ADM
-3. Cadastre jogos
-4. Envie o link aos participantes
+Importante:
+No Firebase Console, ative:
+Authentication > Sign-in method > Google > Enable
+
+Depois suba estes arquivos no GitHub e faça commit.
