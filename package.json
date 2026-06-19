@@ -1,0 +1,7 @@
+{
+  "scripts": {
+    "deploy": "firebase deploy",
+    "serve": "firebase emulators:start"
+  },
+  "dependencies": {}
+}

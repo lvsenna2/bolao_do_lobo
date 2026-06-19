@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Bolão do Lobo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<header class="hero">
+  <div class="logo">
+    <span class="wolf">🐺</span>
+    <h1>BOLÃO DO LOBO</h1>
+    <span class="wolf">⚽</span>
+  </div>
+  <p class="subtitle">Copa do Mundo 2026 • Palpites • Ranking • Premiação</p>
+  <nav id="nav" class="hidden">
+    <button onclick="showPage('palpites')">Palpites</button>
+    <button onclick="showPage('meus')">Meus palpites</button>
+    <button onclick="showPage('ranking')">Ranking</button>
+    <button id="adminNav" class="hidden" onclick="showPage('admin')">ADM</button>
+    <button onclick="logout()">Sair</button>
+  </nav>
+</header>
+
+<main>
+  <section id="loginPage">
+    <h2>Entrar na alcateia</h2>
+    <div class="grid">
+      <input id="email" type="email" placeholder="E-mail">
+      <input id="password" type="password" placeholder="Senha">
+    </div>
+    <button onclick="login()">Entrar</button>
+    <div id="loginMsg" class="msg"></div>
+
+    <div class="rules">
+      <h2>Premiação</h2>
+      <p>🥇 1º lugar: <strong>R$ 150</strong></p>
+      <p>🥈 2º lugar: <strong>R$ 40</strong></p>
+      <p>🥉 3º lugar: <strong>R$ 20</strong></p>
+    </div>
+  </section>
+
+  <section id="palpitesPage" class="hidden">
+    <h2>Palpites do dia</h2>
+    <p id="hello" class="msg"></p>
+
+    <div class="grid">
+      <select id="dateSelect" onchange="loadGames()"></select>
+      <div class="info-card">
+        <strong>Regra:</strong><br>
+        Só os jogos do dia ficam liberados. Escolha todos os palpites abertos e marque 1 dobrado.
+      </div>
+    </div>
+
+    <div id="dateMsg" class="msg"></div>
+    <div id="games" class="cards-grid"></div>
+    <button onclick="saveGuesses()">Salvar palpites</button>
+    <div id="saveMsg" class="msg"></div>
+  </section>
+
+  <section id="meusPage" class="hidden">
+    <h2>Meus palpites</h2>
+    <button onclick="loadMyGuesses()">Atualizar</button>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Enviado em</th>
+            <th>Data</th>
+            <th>Jogo</th>
+            <th>Palpite</th>
+            <th>Dobrado</th>
+            <th>Resultado</th>
+          </tr>
+        </thead>
+        <tbody id="myGuessesTable"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="rankingPage" class="hidden">
+    <h2>Ranking da alcateia</h2>
+    <button onclick="loadRanking()">Atualizar Ranking</button>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Posição</th>
+            <th>Participante</th>
+            <th>Pontos</th>
+            <th>Prêmio</th>
+          </tr>
+        </thead>
+        <tbody id="ranking"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="adminPage" class="hidden">
+    <h2>Painel ADM</h2>
+
+    <div class="grid">
+      <button onclick="showAdminTab('resultados')">Resultados</button>
+      <button onclick="showAdminTab('todosPalpites')">Todos os palpites</button>
+      <button onclick="showAdminTab('usuarios')">Usuários</button>
+    </div>
+
+    <div id="adminResultados">
+      <h2>Lançar resultados</h2>
+      <select id="adminDateSelect" onchange="loadAdminGames()"></select>
+      <div id="adminGames" class="cards-grid"></div>
+    </div>
+
+    <div id="adminTodosPalpites" class="hidden">
+      <h2>Todos os palpites</h2>
+      <button onclick="loadAllGuesses()">Atualizar</button>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Enviado em</th>
+              <th>Participante</th>
+              <th>Data</th>
+              <th>Jogo</th>
+              <th>Palpite</th>
+              <th>Dobrado</th>
+            </tr>
+          </thead>
+          <tbody id="allGuessesTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="adminUsuarios" class="hidden">
+      <h2>Usuários cadastrados</h2>
+      <button onclick="loadUsers()">Atualizar</button>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>E-mail</th>
+              <th>Pontos iniciais</th>
+              <th>Perfil</th>
+            </tr>
+          </thead>
+          <tbody id="usersTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>
