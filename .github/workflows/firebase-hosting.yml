@@ -1,0 +1,24 @@
+name: Deploy Firebase Hosting
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Create Firebase Credentials
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > service-account.json
+
+      - name: Deploy
+        run: firebase deploy --project bolaodolobo-e867e
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: service-account.json
