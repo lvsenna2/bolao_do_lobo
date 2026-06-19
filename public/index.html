@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Bolão do Lobo</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="hero">
+  <div class="logo">
+    <span class="wolf">🐺</span>
+    <h1>BOLÃO DO LOBO</h1>
+    <span class="wolf">🏆</span>
+  </div>
+  <p class="subtitle">Copa do Mundo 2026 • Palpites • Ranking • Premiação</p>
+</header>
+
+<main>
+  <section>
+    <h2>Entrar na alcateia</h2>
+    <div class="grid">
+      <input id="loginUser" placeholder="Usuário">
+      <input id="loginPass" type="password" placeholder="Senha">
+    </div>
+    <button onclick="login()">Entrar</button>
+    <div id="loginMsg" class="msg"></div>
+  </section>
+
+  <section>
+    <h2>Premiação</h2>
+    <div class="info-row">
+      <div class="info-card">🥇 <strong>1º lugar</strong><br>R$ 150</div>
+      <div class="info-card">🥈 <strong>2º lugar</strong><br>R$ 40</div>
+      <div class="info-card">🥉 <strong>3º lugar</strong><br>R$ 20</div>
+    </div>
+  </section>
+
+  <section class="rules">
+    <h2>Regras rápidas</h2>
+    <p><span>Vencedor ou empate correto:</span> 3 pontos.</p>
+    <p><span>Dupla hipótese 1X ou 2X:</span> 1 ponto.</p>
+    <p><span>Jogo dobrado:</span> 6 pontos no palpite normal ou 3 pontos na dupla hipótese.</p>
+  </section>
+
+  <section>
+    <h2>Acessos iniciais</h2>
+    <p>ADM: <strong>admin</strong> / Senha: <strong>admin123</strong></p>
+    <p>Participantes: senha inicial <strong>123456</strong></p>
+  </section>
+</main>
+
+<script>
+async function login() {
+  const res = await fetch("/api/login", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      username: document.getElementById("loginUser").value,
+      password: document.getElementById("loginPass").value
+    })
+  });
+
+  const data = await res.json();
+
+  if (!data.user) {
+    document.getElementById("loginMsg").textContent = data.error;
+    return;
+  }
+
+  location.href = data.user.role === "admin" ? "/admin" : "/app";
+}
+</script>
+</body>
+</html>
