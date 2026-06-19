@@ -3,6 +3,8 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   onAuthStateChanged,
   signOut
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
@@ -137,7 +139,18 @@ async function loginGoogle() {
     await signInWithPopup(auth, provider);
     msg.textContent = "Login realizado.";
   } catch (error) {
-    console.error(error);
+    console.error("Erro no login Google:", error);
+
+    if (
+      error.code === "auth/popup-blocked" ||
+      error.code === "auth/popup-closed-by-user" ||
+      error.code === "auth/cancelled-popup-request"
+    ) {
+      msg.textContent = "Abrindo login em outra tela...";
+      await signInWithRedirect(auth, provider);
+      return;
+    }
+
     msg.textContent = "Erro no login Google: " + (error.code || error.message);
   }
 }
@@ -603,6 +616,21 @@ async function exportPredictionsCSV() {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  const loginBtn = document.getElementById("loginGoogleBtn");
+  const createBtn = document.getElementById("createGoogleBtn");
+
+  if (loginBtn) loginBtn.addEventListener("click", loginGoogle);
+  if (createBtn) createBtn.addEventListener("click", loginGoogle);
+
+  getRedirectResult(auth).catch(error => {
+    console.error("Erro no retorno do login:", error);
+    const msg = document.getElementById("loginMsg");
+    if (msg) msg.textContent = "Erro no retorno do login: " + (error.code || error.message);
+  });
+});
 
 onAuthStateChanged(auth, async user => {
   currentUser = user;

@@ -1,16 +1,16 @@
-# Bolão do Lobo V10 - Login e criação de conta Google
+# Bolão do Lobo V11 - Login Google corrigido
 
-Esta versão tem:
+Correções:
+- Botões de login agora usam addEventListener.
+- Login Google com popup.
+- Se o popup falhar, tenta redirect.
+- Mensagem de erro aparece na tela.
+- Imports do Firebase organizados no topo do app.js.
 
-- Botão Entrar com Google
-- Botão Criar conta com Google
-- Se a pessoa já tem conta, entra normalmente
-- Se for primeiro acesso, o sistema cria o perfil automaticamente no Firestore
-- ADM automático para lvaz@id.uff.br
-- Participantes começam com 0 pontos
+Suba esta versão no GitHub substituindo a anterior.
 
-Importante:
-No Firebase Console, ative:
-Authentication > Sign-in method > Google > Enable
-
-Depois suba estes arquivos no GitHub e faça commit.
+Antes de testar:
+1. Firebase Console > Authentication > Sign-in method > Google > Ativado
+2. Authentication > Settings > Authorized domains:
+   - bolaodolobo-e867e.web.app
+   - bolaodolobo-e867e.firebaseapp.com
